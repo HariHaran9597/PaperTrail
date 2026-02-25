@@ -11,6 +11,8 @@ class PaperTrailState(TypedDict):
 
     # ─── Input ───
     arxiv_url: str
+    pdf_path: Optional[str]       # For direct PDF upload fallback
+    pdf_filename: Optional[str]   # Original filename of uploaded PDF
 
     # ─── Agent 1: Paper Parser output ───
     parsed_paper: Optional[dict]

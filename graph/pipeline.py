@@ -40,13 +40,24 @@ def _get_agents():
 # ─── Node Functions ───
 
 def parse_paper_node(state: PaperTrailState) -> dict:
-    """Agent 1: Parse the paper from arXiv URL."""
+    """Agent 1: Parse the paper from arXiv URL or uploaded PDF."""
     try:
         agents = _get_agents()
         logger.info("=" * 50)
         logger.info("PIPELINE NODE: parse_paper")
         start = time.time()
-        result = agents["parser"].parse(state["arxiv_url"])
+
+        # Route: PDF upload path vs arXiv URL path
+        if state.get("pdf_path"):
+            logger.info("  → Using PDF upload path")
+            result = agents["parser"].parse_from_pdf(
+                state["pdf_path"],
+                state.get("pdf_filename", "Uploaded Paper"),
+            )
+        else:
+            logger.info("  → Using arXiv URL path")
+            result = agents["parser"].parse(state["arxiv_url"])
+
         logger.info(f"  Completed in {time.time() - start:.1f}s")
         return {"parsed_paper": result, "status": "processing"}
     except Exception as e:
@@ -192,7 +203,7 @@ pipeline = build_pipeline()
 
 def analyze_paper(arxiv_url: str) -> dict:
     """
-    Run the full PaperTrail pipeline.
+    Run the full PaperTrail pipeline via arXiv URL.
     
     Args:
         arxiv_url: arXiv URL or paper ID
@@ -206,6 +217,35 @@ def analyze_paper(arxiv_url: str) -> dict:
 
     result = pipeline.invoke({
         "arxiv_url": arxiv_url,
+        "status": "processing",
+    })
+
+    elapsed = time.time() - start
+    logger.info(f"🏁 Pipeline complete in {elapsed:.1f}s — Status: {result.get('status')}")
+
+    return result
+
+
+def analyze_pdf(pdf_path: str, filename: str = "Uploaded Paper") -> dict:
+    """
+    Run the full PaperTrail pipeline via direct PDF upload.
+    Fallback when arXiv API is unavailable or for non-arXiv papers.
+    
+    Args:
+        pdf_path: Path to the uploaded PDF
+        filename: Original filename
+        
+    Returns:
+        Complete analysis result dict
+    """
+    logger.info("🔬 Starting PaperTrail analysis pipeline (PDF upload)")
+    logger.info(f"   Input: {filename}")
+    start = time.time()
+
+    result = pipeline.invoke({
+        "arxiv_url": "",
+        "pdf_path": pdf_path,
+        "pdf_filename": filename,
         "status": "processing",
     })
 
