@@ -1,0 +1,33 @@
+# Environment
+.env
+__pycache__/
+*.pyc
+*.pyo
+
+# Data (large files)
+data/papers_cache/*.pdf
+data/faiss_index/papers.index
+data/faiss_index/metadata.json
+data/seed_papers.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Generated files
+concept_graph.html
+*.pdf
+!requirements.txt
+
+# Virtual environment
+venv/
+.venv/
+env/
