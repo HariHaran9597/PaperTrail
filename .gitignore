@@ -24,6 +24,7 @@ Thumbs.db
 
 # Generated files
 concept_graph.html
+data/graphs/
 *.pdf
 !requirements.txt
 

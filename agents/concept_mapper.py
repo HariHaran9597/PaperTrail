@@ -7,6 +7,7 @@ to build an interactive knowledge graph.
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
+from config import GROQ_MODEL
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class ConceptMapperAgent:
     """Agent 4: Extracts concepts and relationships for knowledge graph visualization."""
 
     def __init__(self):
-        self.llm = ChatGroq(model="moonshotai/kimi-k2-instruct-0905", temperature=0)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0)
 
     def map_concepts(self, parsed_paper: dict) -> dict:
         """

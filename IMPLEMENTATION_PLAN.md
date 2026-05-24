@@ -427,7 +427,7 @@ class PaperParserAgent:
     def __init__(self):
         self.fetcher = ArxivFetcher()
         self.extractor = PDFExtractor()
-        self.llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0)
 
     def parse(self, arxiv_url: str) -> dict:
         # Step 1: Fetch metadata + PDF
@@ -481,7 +481,7 @@ class LayeredExplanation(BaseModel):
 
 class LayeredExplainerAgent:
     def __init__(self):
-        self.llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.3)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0.3)
 
     def explain(self, parsed_paper: dict) -> dict:
         prompt = ChatPromptTemplate.from_messages([
@@ -544,7 +544,7 @@ class NoveltyAnalysis(BaseModel):
 
 class NoveltyDetectorAgent:
     def __init__(self):
-        self.llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0)
         self.paper_index = PaperIndex()
         self.paper_index.load_index()
 
@@ -619,7 +619,7 @@ class ConceptMap(BaseModel):
 
 class ConceptMapperAgent:
     def __init__(self):
-        self.llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0)
 
     def map_concepts(self, parsed_paper: dict) -> dict:
         prompt = ChatPromptTemplate.from_messages([
@@ -730,7 +730,7 @@ class PaperQuestions(BaseModel):
 
 class QuestionGeneratorAgent:
     def __init__(self):
-        self.llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.3)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0.3)
 
     def generate(self, parsed_paper: dict, novelty: dict) -> dict:
         prompt = ChatPromptTemplate.from_messages([

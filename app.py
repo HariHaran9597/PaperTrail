@@ -9,6 +9,7 @@ import streamlit as st
 from graph.pipeline import analyze_paper, analyze_pdf
 from utils.pdf_report import generate_pdf_report
 from agents.research_thread import ResearchThreadAgent
+from config import GROQ_API_KEY, GROQ_MODEL, MISSING_INDEX_MESSAGE
 import streamlit.components.v1 as components
 import os
 import tempfile
@@ -153,9 +154,7 @@ with st.sidebar:
     example_papers = {
         "Attention Is All You Need": "1706.03762",
         "BERT": "1810.04805",
-        "GPT-3": "2005.14165",
-        "ResNet": "1512.03385",
-        "Diffusion Models Beat GANs": "2105.05233",
+        "Vision Transformer": "2010.11929",
     }
 
     for name, arxiv_id in example_papers.items():
@@ -176,8 +175,10 @@ with st.sidebar:
                 st.session_state.current_result = item["result"]
 
     st.divider()
+    if not GROQ_API_KEY:
+        st.warning("Set GROQ_API_KEY in .env before analyzing papers.")
     st.caption("Built with LangGraph, Groq, FAISS, and Streamlit")
-    st.caption("🔑 Uses Kimi K2 Instruct via Groq (free)")
+    st.caption(f"Groq model: {GROQ_MODEL}")
 
 
 # ═══════════════════════════════════════════════════
@@ -351,78 +352,83 @@ if result and not result.get("error"):
     with tab2:
         nov = result.get("novelty_analysis", {})
         if nov:
-            # AI Score display
-            ai_score = nov.get("novelty_score", 5)
-            col_s1, col_s2 = st.columns([1, 3])
+            if nov.get("requires_index"):
+                st.warning(MISSING_INDEX_MESSAGE)
+                st.info("After building the index, rerun the paper analysis to retrieve related papers and calculate a novelty score.")
+            else:
+                # AI Score display
+                ai_score = nov.get("novelty_score", 5)
+                col_s1, col_s2 = st.columns([1, 3])
 
-            with col_s1:
-                st.markdown(f"""
-                <div class="score-container">
-                    <div class="score-number">{ai_score}/10</div>
-                    <div class="score-label">AI Novelty Score</div>
+                with col_s1:
+                    st.markdown(f"""
+                    <div class="score-container">
+                        <div class="score-number">{ai_score}/10</div>
+                        <div class="score-label">AI Novelty Score</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with col_s2:
+                    st.markdown(f"**Summary:** {nov.get('novelty_summary', 'N/A')}")
+                    if ai_score >= 8:
+                        st.success("🌟 Highly novel — introduces significant new ideas")
+                    elif ai_score >= 5:
+                        st.info("📊 Solid contribution — meaningful improvements with some new ideas")
+                    else:
+                        st.warning("📈 Incremental — builds upon existing work with minor improvements")
+
+                # ─── HITL: Human-in-the-Loop Novelty Review ───
+                st.markdown("""
+                <div class="hitl-box">
+                    <h4 style="color: #9a3412; margin: 0 0 4px 0;">👤 Human Review (Optional)</h4>
+                    <p style="color: #78350f; margin: 0; font-size: 0.85rem;">
+                        Disagree with the AI's assessment? Adjust the score and add your notes below.
+                    </p>
                 </div>
                 """, unsafe_allow_html=True)
 
-            with col_s2:
-                st.markdown(f"**Summary:** {nov.get('novelty_summary', 'N/A')}")
-                if ai_score >= 8:
-                    st.success("🌟 Highly novel — introduces significant new ideas")
-                elif ai_score >= 5:
-                    st.info("📊 Solid contribution — meaningful improvements with some new ideas")
-                else:
-                    st.warning("📈 Incremental — builds upon existing work with minor improvements")
+                col_h1, col_h2 = st.columns([1, 3])
+                with col_h1:
+                    human_score = st.slider(
+                        "Your novelty score",
+                        min_value=1, max_value=10,
+                        value=ai_score,
+                        key="human_novelty_score",
+                    )
+                with col_h2:
+                    human_notes = st.text_area(
+                        "Your review notes (optional)",
+                        placeholder="e.g., 'The attention mechanism was truly novel at the time, but the architecture borrows heavily from...'",
+                        height=80,
+                        key="human_novelty_notes",
+                    )
 
-            # ─── HITL: Human-in-the-Loop Novelty Review ───
-            st.markdown("""
-            <div class="hitl-box">
-                <h4 style="color: #9a3412; margin: 0 0 4px 0;">👤 Human Review (Optional)</h4>
-                <p style="color: #78350f; margin: 0; font-size: 0.85rem;">
-                    Disagree with the AI's assessment? Adjust the score and add your notes below.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
+                if human_score != ai_score:
+                    st.info(f"📝 Your score: **{human_score}/10** (AI said {ai_score}/10). Noted for your records.")
 
-            col_h1, col_h2 = st.columns([1, 3])
-            with col_h1:
-                human_score = st.slider(
-                    "Your novelty score",
-                    min_value=1, max_value=10,
-                    value=ai_score,
-                    key="human_novelty_score",
-                )
-            with col_h2:
-                human_notes = st.text_area(
-                    "Your review notes (optional)",
-                    placeholder="e.g., 'The attention mechanism was truly novel at the time, but the architecture borrows heavily from...'",
-                    height=80,
-                    key="human_novelty_notes",
-                )
-
-            if human_score != ai_score:
-                st.info(f"📝 Your score: **{human_score}/10** (AI said {ai_score}/10). Noted for your records.")
-
-            st.divider()
-
-            # Novel contributions
-            st.markdown("### ✨ Novel Contributions")
-            for c in nov.get("novel_contributions", []):
-                st.markdown(f'<span class="novelty-badge badge-novel">NEW</span> {c}', unsafe_allow_html=True)
-
-            st.markdown("### 📈 Incremental Improvements")
-            for c in nov.get("incremental_improvements", []):
-                st.markdown(f'<span class="novelty-badge badge-incremental">IMPROVED</span> {c}', unsafe_allow_html=True)
-
-            st.markdown("### 📚 Builds Upon")
-            for c in nov.get("builds_upon", []):
-                st.markdown(f'<span class="novelty-badge badge-builds">PRIOR</span> {c}', unsafe_allow_html=True)
-
-            related = result.get("related_papers", [])
-            if related:
                 st.divider()
-                st.markdown("### 🔗 Related Papers from Literature")
-                for p in related:
-                    score_val = p.get("similarity_score", 0)
-                    st.markdown(f"- **{p['title']}** (similarity: `{score_val:.3f}`)")
+
+                # Novel contributions
+                st.markdown("### ✨ Novel Contributions")
+                for c in nov.get("novel_contributions", []):
+                    st.markdown(f'<span class="novelty-badge badge-novel">NEW</span> {c}', unsafe_allow_html=True)
+
+                st.markdown("### 📈 Incremental Improvements")
+                for c in nov.get("incremental_improvements", []):
+                    st.markdown(f'<span class="novelty-badge badge-incremental">IMPROVED</span> {c}', unsafe_allow_html=True)
+
+                st.markdown("### 📚 Builds Upon")
+                for c in nov.get("builds_upon", []):
+                    st.markdown(f'<span class="novelty-badge badge-builds">PRIOR</span> {c}', unsafe_allow_html=True)
+
+                related = result.get("related_papers", [])
+                if related:
+                    st.divider()
+                    st.markdown("### 🔗 Related Papers from Literature")
+                    for p in related:
+                        score_val = p.get("similarity_score", 0)
+                        year = p.get("published", "N/A")[:4]
+                        st.markdown(f"- **{p['title']}** ({year}) - similarity: `{score_val:.3f}`")
 
     # ═══════════════════════════════════════
     # TAB 3: Concept Map

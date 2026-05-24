@@ -10,6 +10,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from utils.arxiv_fetcher import ArxivFetcher
 from utils.pdf_extractor import PDFExtractor
+from config import GROQ_MODEL
 import os
 import logging
 
@@ -35,7 +36,7 @@ class PaperParserAgent:
     def __init__(self):
         self.fetcher = ArxivFetcher()
         self.extractor = PDFExtractor()
-        self.llm = ChatGroq(model="moonshotai/kimi-k2-instruct-0905", temperature=0)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0)
 
     def parse(self, arxiv_url: str) -> dict:
         """

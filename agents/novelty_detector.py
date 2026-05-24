@@ -8,6 +8,7 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from utils.embeddings import PaperIndex
+from config import GROQ_MODEL, MISSING_INDEX_MESSAGE
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ class NoveltyDetectorAgent:
     """Agent 3: Detects what's genuinely novel using RAG over related papers."""
 
     def __init__(self):
-        self.llm = ChatGroq(model="moonshotai/kimi-k2-instruct-0905", temperature=0)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0)
         self.paper_index = PaperIndex()
         try:
             self.paper_index.load_index()
@@ -46,7 +47,7 @@ class NoveltyDetectorAgent:
             logger.warning(
                 "Novelty Detector: FAISS index not found. "
                 "Run 'python scripts/build_seed_index.py' to build it. "
-                "Novelty detection will work with limited context."
+                "Novelty scoring will be skipped until the index exists."
             )
             self.paper_index = None
 
@@ -66,21 +67,34 @@ class NoveltyDetectorAgent:
         related_papers = []
         related_context = "No related papers index available."
 
-        if self.paper_index is not None:
-            query = (
-                f"{parsed_paper['parsed']['title']}. "
-                f"{parsed_paper['parsed']['problem_statement']}. "
-                f"{parsed_paper['parsed']['methodology_summary']}"
-            )
-            related_papers = self.paper_index.search(query, top_k=10)
+        if self.paper_index is None:
+            logger.warning("  %s", MISSING_INDEX_MESSAGE)
+            return {
+                "novelty": {
+                    "novel_contributions": [],
+                    "incremental_improvements": [],
+                    "builds_upon": [],
+                    "novelty_score": None,
+                    "novelty_summary": MISSING_INDEX_MESSAGE,
+                    "requires_index": True,
+                },
+                "related_papers": [],
+            }
 
-            # Build context string from related papers
-            related_context = "\n\n".join([
-                f"- **{p['title']}** ({p.get('published', 'N/A')[:4]}): "
-                f"{p['abstract'][:300]}..."
-                for p in related_papers
-            ])
-            logger.info(f"  Found {len(related_papers)} related papers")
+        query = (
+            f"{parsed_paper['parsed']['title']}. "
+            f"{parsed_paper['parsed']['problem_statement']}. "
+            f"{parsed_paper['parsed']['methodology_summary']}"
+        )
+        related_papers = self.paper_index.search(query, top_k=10)
+
+        # Build context string from related papers
+        related_context = "\n\n".join([
+            f"- **{p['title']}** ({p.get('published', 'N/A')[:4]}): "
+            f"{p['abstract'][:300]}..."
+            for p in related_papers
+        ])
+        logger.info(f"  Found {len(related_papers)} related papers")
 
         # Step 2: LLM novelty analysis
         prompt = ChatPromptTemplate.from_messages([

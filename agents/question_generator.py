@@ -10,6 +10,7 @@ Generates insightful research questions:
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
+from config import GROQ_MODEL
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ class QuestionGeneratorAgent:
     """Agent 5: Generates research questions for deeper paper understanding."""
 
     def __init__(self):
-        self.llm = ChatGroq(model="moonshotai/kimi-k2-instruct-0905", temperature=0.3)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0.3)
 
     def generate(self, parsed_paper: dict, novelty: dict) -> dict:
         """

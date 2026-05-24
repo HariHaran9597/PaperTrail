@@ -15,6 +15,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 import os
 import logging
 from datetime import datetime
+from xml.sax.saxutils import escape
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,11 @@ DARK = HexColor("#1e1b4b")
 LIGHT_BG = HexColor("#f8fafc")
 TEXT_DARK = HexColor("#1e293b")
 TEXT_MUTED = HexColor("#64748b")
+
+
+def _pdf_text(value) -> str:
+    """Escape dynamic text before passing it to ReportLab Paragraph markup."""
+    return escape(str(value or "N/A"))
 
 
 def generate_pdf_report(result: dict, output_path: str = None) -> str:
@@ -117,20 +123,20 @@ def generate_pdf_report(result: dict, output_path: str = None) -> str:
 
     # ─── Paper Info ───
     story.append(Paragraph("📄 Paper Information", styles['SectionHeader']))
-    story.append(Paragraph(f"<b>{parsed['title']}</b>", styles['BodyText2']))
+    story.append(Paragraph(f"<b>{_pdf_text(parsed['title'])}</b>", styles['BodyText2']))
     story.append(Paragraph(
-        f"Authors: {', '.join(metadata['authors'][:8])}",
+        f"Authors: {_pdf_text(', '.join(metadata['authors'][:8]))}",
         styles['BodyText2']
     ))
     story.append(Paragraph(
-        f"Published: {metadata['published'][:10]} | "
-        f"Type: {parsed['paper_type']} | "
-        f"Categories: {', '.join(metadata['categories'])}",
+        f"Published: {_pdf_text(metadata['published'][:10])} | "
+        f"Type: {_pdf_text(parsed['paper_type'])} | "
+        f"Categories: {_pdf_text(', '.join(metadata['categories']))}",
         styles['Muted']
     ))
     story.append(Spacer(1, 6))
-    story.append(Paragraph(f"<b>Problem:</b> {parsed['problem_statement']}", styles['BodyText2']))
-    story.append(Paragraph(f"<b>Methodology:</b> {parsed['methodology_summary']}", styles['BodyText2']))
+    story.append(Paragraph(f"<b>Problem:</b> {_pdf_text(parsed['problem_statement'])}", styles['BodyText2']))
+    story.append(Paragraph(f"<b>Methodology:</b> {_pdf_text(parsed['methodology_summary'])}", styles['BodyText2']))
 
     # ─── Explanations ───
     if result.get("explanations"):
@@ -153,11 +159,13 @@ def generate_pdf_report(result: dict, output_path: str = None) -> str:
     if result.get("novelty_analysis"):
         nov = result["novelty_analysis"]
         story.append(Paragraph("🆕 Novelty Analysis", styles['SectionHeader']))
+        score = nov.get("novelty_score")
+        score_label = "Requires local paper index" if score is None else f"{score}/10"
         story.append(Paragraph(
-            f"<b>Novelty Score: {nov['novelty_score']}/10</b>",
+            f"<b>Novelty Score: {_pdf_text(score_label)}</b>",
             styles['BodyText2']
         ))
-        story.append(Paragraph(nov['novelty_summary'], styles['BodyText2']))
+        story.append(Paragraph(_pdf_text(nov['novelty_summary']), styles['BodyText2']))
 
         story.append(Paragraph("✨ Novel Contributions:", styles['SubHeader']))
         for item in nov["novel_contributions"]:
@@ -170,6 +178,29 @@ def generate_pdf_report(result: dict, output_path: str = None) -> str:
         story.append(Paragraph("📚 Builds Upon:", styles['SubHeader']))
         for item in nov["builds_upon"]:
             story.append(Paragraph(f"• {item}", styles['BodyText2']))
+
+    # ─── Concept Map ───
+    if result.get("concept_map"):
+        concept_map = result["concept_map"]
+        story.append(Paragraph("Concept Map", styles['SectionHeader']))
+
+        nodes = concept_map.get("nodes", [])
+        edges = concept_map.get("edges", [])
+        if nodes:
+            story.append(Paragraph("Important Concepts:", styles['SubHeader']))
+            for node in nodes[:15]:
+                label = _pdf_text(node.get("label", node.get("id", "Unknown")))
+                category = _pdf_text(node.get("category", "concept"))
+                importance = _pdf_text(node.get("importance", "N/A"))
+                story.append(Paragraph(f"• <b>{label}</b> ({category}, importance {importance}/5)", styles['BodyText2']))
+
+        if edges:
+            story.append(Paragraph("Key Relationships:", styles['SubHeader']))
+            for edge in edges[:20]:
+                source = _pdf_text(edge.get("source", "unknown"))
+                relationship = _pdf_text(edge.get("relationship", "relates_to"))
+                target = _pdf_text(edge.get("target", "unknown"))
+                story.append(Paragraph(f"• {source} → {relationship} → {target}", styles['BodyText2']))
 
     # ─── Questions ───
     if result.get("questions"):

@@ -13,6 +13,7 @@ This is the HIGH-IMPACT differentiating feature of PaperTrail.
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
+from config import GROQ_MODEL
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class ResearchThreadAgent:
     """Agent 6: Multi-paper synthesis for research thread analysis."""
 
     def __init__(self):
-        self.llm = ChatGroq(model="moonshotai/kimi-k2-instruct-0905", temperature=0.3)
+        self.llm = ChatGroq(model=GROQ_MODEL, temperature=0.3)
 
     def synthesize(self, parsed_papers: list[dict]) -> dict:
         """

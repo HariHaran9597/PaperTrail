@@ -5,6 +5,7 @@ Builds interactive Pyvis knowledge graphs from concept maps.
 
 from pyvis.network import Network
 import os
+from uuid import uuid4
 import logging
 
 logger = logging.getLogger(__name__)
@@ -29,17 +30,21 @@ CATEGORY_SHAPES = {
 }
 
 
-def build_knowledge_graph(concept_map: dict, output_path: str = "concept_graph.html") -> str:
+def build_knowledge_graph(concept_map: dict, output_path: str = None) -> str:
     """
     Build an interactive knowledge graph visualization using Pyvis.
     
     Args:
         concept_map: dict with 'nodes' and 'edges' from ConceptMapperAgent
-        output_path: Path to save the HTML file
+        output_path: Path to save the HTML file. Auto-generated if None.
         
     Returns:
         Path to the generated HTML file
     """
+    if output_path is None:
+        os.makedirs("data/graphs", exist_ok=True)
+        output_path = os.path.join("data", "graphs", f"concept_graph_{uuid4().hex}.html")
+
     logger.info(f"Building knowledge graph with {len(concept_map['nodes'])} nodes, {len(concept_map['edges'])} edges")
 
     net = Network(
