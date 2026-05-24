@@ -195,4 +195,13 @@ GROQ_MODEL="qwen/qwen3-32b"
 
 For a full novelty-analysis demo on Streamlit Cloud, the FAISS index must be available to the deployed app. Without it, the app still runs but shows the explicit missing-index message in the novelty tab.
 
+<img width="2527" height="1231" alt="image" src="https://github.com/user-attachments/assets/adf4afff-7a0d-4e4e-a997-e91d4dc27341" />
+
+<img width="2505" height="1229" alt="image" src="https://github.com/user-attachments/assets/4002a016-493f-406b-8a41-adcd2d997e5f" />
+
+<img width="2546" height="1257" alt="image" src="https://github.com/user-attachments/assets/b4dcf4ec-a5df-49ad-a060-1134be17444a" />
+
+
+
+
 
