@@ -7,6 +7,7 @@ Handles both abs/ and pdf/ URLs, as well as direct arXiv IDs.
 import arxiv
 import os
 import re
+from urllib.request import urlretrieve
 import logging
 
 logger = logging.getLogger(__name__)
@@ -77,7 +78,10 @@ class ArxivFetcher:
 
         if not os.path.exists(pdf_path):
             logger.info(f"Downloading PDF to {pdf_path}")
-            paper.download_pdf(dirpath=self.cache_dir, filename=safe_filename)
+            if hasattr(paper, "download_pdf"):
+                paper.download_pdf(dirpath=self.cache_dir, filename=safe_filename)
+            else:
+                urlretrieve(paper.pdf_url, pdf_path)
         else:
             logger.info(f"PDF already cached at {pdf_path}")
 
