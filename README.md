@@ -195,15 +195,4 @@ GROQ_MODEL="qwen/qwen3-32b"
 
 For a full novelty-analysis demo on Streamlit Cloud, the FAISS index must be available to the deployed app. Without it, the app still runs but shows the explicit missing-index message in the novelty tab.
 
-## Interview Talking Points
 
-- Clear agent separation: parsing, explanation, novelty, concept mapping, questions, and synthesis are separate modules.
-- LangGraph is used for predictable pipeline orchestration and failure isolation.
-- Novelty analysis is grounded in retrieved prior work instead of unsupported LLM-only claims.
-- Missing FAISS index behavior is explicit and user-facing.
-- The model is configured once through environment variables, not hardcoded across agents.
-- The app supports both arXiv and direct PDF input, making it practical for live demos.
-
-## License
-
-This project is intended for portfolio and educational use.
