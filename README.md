@@ -1,6 +1,91 @@
 # PaperTrail
 
-PaperTrail is a research-paper understanding engine built for fast demos and defensible interviews. Paste an arXiv URL, an arXiv ID such as `1706.03762`, or upload a PDF to get structured paper parsing, layered explanations, prior-work novelty analysis, a concept map, research questions, and a downloadable PDF report.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Agent%20Workflow-1C3C3C)](https://langchain-ai.github.io/langgraph/)
+[![Groq](https://img.shields.io/badge/Groq-LLM%20Inference-F55036)](https://groq.com/)
+
+PaperTrail is an AI research-paper analysis app that turns an arXiv paper or uploaded PDF into a structured, demo-ready research brief. It parses the paper, explains it at multiple levels, compares it against related prior work, builds an interactive concept map, generates research questions, and exports a PDF report.
+
+The project is intentionally scoped for a recruiter or technical interview demo: it focuses on a complete, defensible paper-understanding workflow instead of a large set of unrelated AI features.
+
+## What It Does
+
+Given an arXiv URL, arXiv ID, or PDF upload, PaperTrail produces:
+
+- Structured paper metadata and analysis
+- ELI5, undergraduate, and expert-level explanations
+- Prior-work retrieval with FAISS semantic search
+- Novelty analysis with a 1-10 score and human override
+- Interactive concept graph of important ideas and relationships
+- Research questions, open problems, and follow-up reading paths
+- Downloadable PDF report
+- Optional multi-paper synthesis for 2-5 analyzed papers
+
+## Demo Inputs
+
+The app includes three built-in examples:
+
+- `1706.03762` - Attention Is All You Need
+- `1810.04805` - BERT
+- `2010.11929` - Vision Transformer
+
+You can also paste any valid arXiv URL or upload a local research-paper PDF.
+
+## Architecture
+
+```text
+Input: arXiv URL, arXiv ID, or PDF
+        |
+        v
+Paper Parser
+  - arXiv metadata
+  - PDF text extraction
+  - structured paper fields
+        |
+        v
+Layered Explainer
+  - ELI5
+  - undergraduate
+  - expert
+        |
+        v
+Novelty Detector
+  - FAISS retrieval
+  - related papers
+  - novelty score
+        |
+        v
+Concept Mapper
+  - nodes
+  - relationships
+  - interactive graph
+        |
+        v
+Question Generator
+  - answered questions
+  - open questions
+  - follow-up reading
+        |
+        v
+Streamlit UI + PDF export
+```
+
+LangGraph coordinates the main analysis pipeline. Each agent has a focused responsibility, and shared runtime configuration lives in `config.py`.
+
+## Tech Stack
+
+| Area | Technology |
+| --- | --- |
+| Frontend | Streamlit |
+| Agent orchestration | LangGraph |
+| LLM provider | Groq |
+| Default model | `qwen/qwen3-32b` |
+| PDF extraction | PyMuPDF |
+| Embeddings | sentence-transformers |
+| Vector search | FAISS |
+| Graph visualization | Pyvis / vis.js |
+| Report export | ReportLab |
 
 ## Quickstart
 
@@ -13,94 +98,34 @@ python scripts/build_seed_index.py
 streamlit run app.py
 ```
 
-Edit `.env` before running the app:
+On macOS or Linux, use:
 
 ```bash
-GROQ_API_KEY=your_groq_api_key_here
+cp .env.example .env
+```
+
+Edit `.env` before running the app:
+
+```env
+GROQ_API_KEY=replace_with_your_groq_api_key
 GROQ_MODEL=qwen/qwen3-32b
 ```
 
-`scripts/build_seed_index.py` builds the local FAISS paper index used for novelty analysis. If you skip it, the app will still parse and explain papers, but novelty analysis will show:
+## Local Paper Index
 
-> Novelty analysis needs the local paper index. Run python scripts/build_seed_index.py.
+Novelty analysis depends on a local FAISS index of related papers. Build it with:
 
-## Core Features
+```bash
+python scripts/build_seed_index.py
+```
 
-### Paper Input
+If the index is missing, PaperTrail does not pretend to perform prior-work analysis. It shows this clear message instead:
 
-- arXiv URL input, for example `https://arxiv.org/abs/1706.03762`
-- arXiv ID input, for example `1706.03762`
-- PDF upload fallback for non-arXiv papers
+```text
+Novelty analysis needs the local paper index. Run python scripts/build_seed_index.py.
+```
 
-### Paper Parsing
-
-PaperTrail extracts:
-
-- Title
-- Authors
-- Abstract
-- Problem statement
-- Methodology
-- Key results
-- Limitations
-- Important technical terms
-
-### Layered Explanation
-
-Each paper gets:
-
-- ELI5 explanation
-- Undergraduate explanation
-- Expert explanation
-- One-sentence summary
-- Key insight
-
-### Novelty And Prior Work
-
-When the local FAISS index is available, PaperTrail:
-
-- Retrieves top related papers
-- Shows title, year, and similarity score
-- Explains what is genuinely new
-- Explains what is incremental
-- Gives a 1-10 novelty score
-- Allows a human override of the score in the UI
-
-### Concept Map
-
-PaperTrail extracts 10-15 important concepts and directed relationships. Invalid LLM-generated edges are filtered so the graph does not break when an edge references a missing node.
-
-### Research Questions
-
-The app generates:
-
-- Questions answered by the paper
-- Open questions
-- Follow-up research ideas
-- Suggested reading path
-- Discussion questions
-
-### Export
-
-The PDF report includes the paper summary, layered explanations, novelty analysis, concept-map data, related papers, and research questions.
-
-## Demo Examples
-
-The sidebar includes three preloaded examples:
-
-- Attention Is All You Need
-- BERT
-- Vision Transformer
-
-## Optional Feature
-
-If you analyze 2-5 papers in one session, the Research Thread section can synthesize:
-
-- Common themes
-- Contradictions
-- Evolution of ideas
-- Open gaps
-- Recommended next research steps
+The rest of the app, including parsing, explanation, concept mapping, questions, and PDF export, can still run without the index.
 
 ## Project Structure
 
@@ -116,8 +141,8 @@ PaperTrail/
 │   ├── question_generator.py
 │   └── research_thread.py
 ├── graph/
-│   ├── state.py
-│   └── pipeline.py
+│   ├── pipeline.py
+│   └── state.py
 ├── utils/
 │   ├── arxiv_fetcher.py
 │   ├── pdf_extractor.py
@@ -131,12 +156,54 @@ PaperTrail/
 └── .env.example
 ```
 
-## Test
+## Configuration
 
-Run the smoke test on one known paper:
+Runtime configuration is centralized in `config.py` and environment variables:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `GROQ_API_KEY` | Yes | Groq API key used by all LLM-backed agents |
+| `GROQ_MODEL` | No | Groq model name. Defaults to `qwen/qwen3-32b` |
+
+Do not commit `.env`. It is ignored by `.gitignore`.
+
+## Testing
+
+Run the smoke test:
 
 ```bash
 python scripts/test_pipeline.py
 ```
 
-The test checks that the pipeline returns the expected top-level fields. It requires `GROQ_API_KEY`; full novelty scoring also requires the local FAISS index.
+The test runs one known arXiv paper through the pipeline and verifies the important output fields. Full novelty scoring requires the FAISS index; if the index is missing, the test accepts the intentional skip state.
+
+## Streamlit Deployment
+
+To deploy on Streamlit Community Cloud:
+
+1. Push this repository to GitHub.
+2. Create a new app at `share.streamlit.io`.
+3. Select this repository, branch `main`, and entry file `app.py`.
+4. Add secrets in Streamlit:
+
+```toml
+GROQ_API_KEY="your_groq_api_key"
+GROQ_MODEL="qwen/qwen3-32b"
+```
+
+5. Deploy the app.
+
+For a full novelty-analysis demo on Streamlit Cloud, the FAISS index must be available to the deployed app. Without it, the app still runs but shows the explicit missing-index message in the novelty tab.
+
+## Interview Talking Points
+
+- Clear agent separation: parsing, explanation, novelty, concept mapping, questions, and synthesis are separate modules.
+- LangGraph is used for predictable pipeline orchestration and failure isolation.
+- Novelty analysis is grounded in retrieved prior work instead of unsupported LLM-only claims.
+- Missing FAISS index behavior is explicit and user-facing.
+- The model is configured once through environment variables, not hardcoded across agents.
+- The app supports both arXiv and direct PDF input, making it practical for live demos.
+
+## License
+
+This project is intended for portfolio and educational use.
